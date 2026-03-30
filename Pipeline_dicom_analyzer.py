@@ -239,9 +239,9 @@ if __name__ == "__main__":
     API_KEY = ""
     MODEL_ID = "" # Recommended for thinking config
     
-    DICOM_INPUT_FOLDER = "Pipeline_dcm_analyzer/dicom_input"
-    PNG_OUTPUT_FOLDER = "Pipeline_dcm_analyzer/png_output"
-    REPORTS_FOLDER = "Pipeline_dcm_analyzer/reports"
+    DICOM_INPUT_FOLDER = "Pipeline_dcm_analyzer/Dicom_Input"
+    PNG_OUTPUT_FOLDER = "Pipeline_dcm_analyzer/Png_Output"
+    REPORTS_FOLDER = "Pipeline_dcm_analyzer/Reports"
 
     pipeline = ImagingPipeline(
         dicom_dir=DICOM_INPUT_FOLDER,
