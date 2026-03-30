@@ -38,7 +38,7 @@ An end-to-end Python pipeline for processing medical `.dcm` (DICOM) files. This 
 - **Image Optimization:** Applies VOI LUT (Value of Interest Look-Up Table) and Photometric Interpretations (e.g., MONOCHROME1 inversion) for optimal visual contrast.
 
 ### 🤖 AI-Powered Medical Analysis
-- **Advanced AI Reasoning:** Utilizes Google's Gemini AI (with the *Thinking* configuration) to emulate step-by-step diagnostic reasoning.
+- **AI Reasoning:** Utilizes Google's Gemini AI (with the *Thinking* configuration) to emulate step-by-step diagnostic reasoning.
 - **Grouped Context:** Analyzes multiple frames belonging to the same original DICOM file together for comparative analysis.
 - **Structured Reporting:** Outputs detailed Markdown (`.md`) reports including the AI's internal thought process, visual findings, clinical impressions, and actionable recommendations.
 
@@ -52,10 +52,9 @@ An end-to-end Python pipeline for processing medical `.dcm` (DICOM) files. This 
 │   └── DicomVerifAnon.py            # Verifies successful anonymization
 ├── Pipeline_dicom_analyzer.py       # Main conversion & AI analysis pipeline
 ├── README.md                        # Project documentation
-└── Pipeline_dcm_analyzer/           # Data directories
-    ├── dicom_input/                 # Place anonymized .dcm files here
-    ├── png_output/                  # Converted .png files are saved here
-    └── reports/                     # AI-generated .md reports are saved here
+├── dicom_input/                 # Place anonymized .dcm files here
+├── png_output/                  # Converted .png files are saved here
+└── reports/                     # AI-generated .md reports are saved here
 
 ---
 
