@@ -45,7 +45,7 @@ An end-to-end Python pipeline for processing medical `.dcm` (DICOM) files. This 
 ---
 
 ## 📂 Project Structure
-
+```
 .
 ├── Dicomanon/
 │   ├── DicomAnon.py                 # Scubs PHI and private tags from DICOMs
@@ -55,7 +55,7 @@ An end-to-end Python pipeline for processing medical `.dcm` (DICOM) files. This 
 ├── dicom_input/                 # Place anonymized .dcm files here
 ├── png_output/                  # Converted .png files are saved here
 └── reports/                     # AI-generated .md reports are saved here
-
+```
 ---
 
 ## 🛠️ Installation
