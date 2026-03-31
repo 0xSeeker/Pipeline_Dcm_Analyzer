@@ -1,5 +1,6 @@
 import os
 import re
+import argparse
 import numpy as np
 import pydicom
 from PIL import Image
@@ -11,9 +12,10 @@ from google.genai import types
 class DicomConverter:
     """Handles the conversion of DICOM files to PNG format."""
     
-    def __init__(self, input_dir: str | Path, output_dir: str | Path):
+    def __init__(self, input_dir: str | Path, output_dir: str | Path, verbose: bool = False):
         self.input_path = Path(input_dir)
         self.output_path = Path(output_dir)
+        self.verbose = verbose
 
     def process_batch(self) -> bool:
         """Walks through the directory and converts all .dcm files."""
@@ -37,6 +39,9 @@ class DicomConverter:
         return True
 
     def _convert_dicom_to_png(self, dicom_path: Path, output_folder: Path) -> None:
+        if self.verbose:
+            print(f"🔄 Processing: {dicom_path.name}")
+            
         try:
             ds = pydicom.dcmread(dicom_path)
         except Exception as e:
@@ -44,7 +49,8 @@ class DicomConverter:
             return
 
         if 'PixelData' not in ds:
-            print(f"⏭️ Skipping {dicom_path.name}: No image pixels found (likely a Structured Report or DICOMDIR).")
+            if self.verbose:
+                print(f"⏭️ Skipping {dicom_path.name}: No image pixels found.")
             return
 
         try:
@@ -56,7 +62,8 @@ class DicomConverter:
         try:
             data = apply_voi_lut(pixel_array, ds)
         except Exception as e:
-            # If VOI LUT fails, we just use the raw pixels
+            if self.verbose:
+                print(f"⚠️ VOI LUT failed for {dicom_path.name}, using raw pixels: {e}")
             data = pixel_array 
 
         if ds.get('PhotometricInterpretation') == "MONOCHROME1":
@@ -75,7 +82,8 @@ class DicomConverter:
         if data.ndim == 2:
             self._save_image(data, output_folder / f"{base_name}.png")
         elif data.ndim == 3:
-            print(f"📂 Detected 3D volume ({data.shape[0]} frames) in {base_name}")
+            if self.verbose:
+                print(f"📂 Detected 3D volume ({data.shape[0]} frames) in {base_name}")
             for i, frame in enumerate(data):
                 self._save_image(frame, output_folder / f"{base_name}_frame_{i:03d}.png")
 
@@ -83,17 +91,19 @@ class DicomConverter:
         """Helper to save numpy array as image."""
         image = Image.fromarray(array)
         image.save(output_path)
-        print(f"✅ Saved Image: {output_path}")
+        if self.verbose:
+            print(f"✅ Saved Image: {output_path}")
 
 
 class MedicalAnalysisAgent:
     """Handles communicating with Gemini to analyze medical images."""
     
-    def __init__(self, api_key: str, model_id: str, input_dir: str | Path, output_dir: str | Path):
+    def __init__(self, api_key: str, model_id: str, input_dir: str | Path, output_dir: str | Path, verbose: bool = False):
         self.client = genai.Client(api_key=api_key)
         self.model_id = model_id
         self.input_path = Path(input_dir)
         self.output_path = Path(output_dir)
+        self.verbose = verbose
 
     def run_analysis(self) -> None:
         """Main execution flow for the AI agent."""
@@ -104,7 +114,7 @@ class MedicalAnalysisAgent:
             print(f"⚠️ No PNG files found in '{self.input_path}'.")
             return
 
-        print(f"🧠 Found {len(image_groups)} cases. Starting AI analysis...")
+        print(f"🧠 Found {len(image_groups)} cases. Starting AI analysis using model '{self.model_id}'...")
 
         for group_id, files in image_groups.items():
             response = self._analyze_group(group_id, files)
@@ -114,13 +124,11 @@ class MedicalAnalysisAgent:
     def _setup_folders(self) -> None:
         """Ensures the output folder exists."""
         self.output_path.mkdir(parents=True, exist_ok=True)
-        print(f"📁 Reports will be saved to: {self.output_path.resolve()}")
+        if self.verbose:
+            print(f"📁 Reports will be saved to: {self.output_path.resolve()}")
 
     def _group_images_by_id(self) -> dict[str, list[Path]]:
-        """
-        Groups PNG files by their original DICOM filename.
-        Removes '_frame_XXX' suffixes to keep multi-frame DICOMs together.
-        """
+        """Groups PNG files by their original DICOM filename."""
         groups = {}
         for img_file in self.input_path.rglob("*.png"):
             group_id = re.sub(r'_frame_\d+$', '', img_file.stem)
@@ -131,8 +139,10 @@ class MedicalAnalysisAgent:
         return groups
 
     def _analyze_group(self, group_id: str, file_paths: list[Path]):
-        """Sends a group of images to Gemini for comparative analysis using a strict template."""
-        print(f"\n⚙️ Processing Case: {group_id}...")
+        """Sends a group of images to Gemini for comparative analysis."""
+        print(f"\n⚙️ Processing Case: {group_id} ({len(file_paths)} views)...")
+        if self.verbose:
+            print(f"   Files: {[f.name for f in file_paths]}")
         
         prompt_text = (
             f"You are an expert radiologist AI analyzing Case {group_id}. "
@@ -156,7 +166,7 @@ class MedicalAnalysisAgent:
             "**Exam assessment:** [Overall assessment of exam quality and findings]"
         )
         
-        prompt_parts =[prompt_text]
+        prompt_parts = [prompt_text]
         
         for path in file_paths:
             with open(path, "rb") as f:
@@ -166,6 +176,8 @@ class MedicalAnalysisAgent:
                 )
 
         try:
+            if self.verbose:
+                print("   Sending request to Google GenAI API...")
             response = self.client.models.generate_content(
                 model=self.model_id,
                 contents=prompt_parts,
@@ -209,13 +221,14 @@ class MedicalAnalysisAgent:
 class ImagingPipeline:
     """Orchestrates the conversion and analysis workflows."""
     
-    def __init__(self, dicom_dir: str, png_dir: str, report_dir: str, api_key: str, model_id: str):
-        self.converter = DicomConverter(input_dir=dicom_dir, output_dir=png_dir)
+    def __init__(self, dicom_dir: str, png_dir: str, report_dir: str, api_key: str, model_id: str, verbose: bool = False):
+        self.converter = DicomConverter(input_dir=dicom_dir, output_dir=png_dir, verbose=verbose)
         self.agent = MedicalAnalysisAgent(
             api_key=api_key, 
             model_id=model_id, 
             input_dir=png_dir, 
-            output_dir=report_dir
+            output_dir=report_dir,
+            verbose=verbose
         )
 
     def run(self):
@@ -235,20 +248,27 @@ class ImagingPipeline:
 
 
 if __name__ == "__main__":
-    # Security Tip: Use os.environ.get("GEMINI_API_KEY") for production!
-    API_KEY = ""
-    MODEL_ID = "" # Recommended for thinking config
+    parser = argparse.ArgumentParser(description="DICOM to PNG Converter and Gemini AI Analyzer Pipeline.")
+    parser.add_argument("-i", "--input", default="Pipeline_dcm_analyzer/dicom_input", help="Directory containing input DICOM files")
+    parser.add_argument("-p", "--png-output", default="Pipeline_dcm_analyzer/png_output", help="Directory to save converted PNG files")
+    parser.add_argument("-r", "--report-output", default="Pipeline_dcm_analyzer/reports", help="Directory to save generated Markdown reports")
+    parser.add_argument("-k", "--api-key", default=os.environ.get("GEMINI_API_KEY", ""), help="Gemini API Key (Defaults to GEMINI_API_KEY env variable)")
+    parser.add_argument("-m", "--model", default="gemini-2.5-pro", help="Gemini Model ID (Defaults to gemini-2.5-pro)")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging")
     
-    DICOM_INPUT_FOLDER = "Pipeline_dcm_analyzer/Dicom_Input"
-    PNG_OUTPUT_FOLDER = "Pipeline_dcm_analyzer/Png_Output"
-    REPORTS_FOLDER = "Pipeline_dcm_analyzer/Reports"
+    args = parser.parse_args()
+
+    if not args.api_key:
+        print("❌ Error: Gemini API key is required. Pass it via --api-key or set the GEMINI_API_KEY environment variable.")
+        exit(1)
 
     pipeline = ImagingPipeline(
-        dicom_dir=DICOM_INPUT_FOLDER,
-        png_dir=PNG_OUTPUT_FOLDER,
-        report_dir=REPORTS_FOLDER,
-        api_key=API_KEY,
-        model_id=MODEL_ID
+        dicom_dir=args.input,
+        png_dir=args.png_output,
+        report_dir=args.report_output,
+        api_key=args.api_key,
+        model_id=args.model,
+        verbose=args.verbose
     )
     
     pipeline.run()
