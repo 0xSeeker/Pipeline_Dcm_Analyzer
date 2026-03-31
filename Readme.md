@@ -38,9 +38,10 @@ An end-to-end Python pipeline for processing medical `.dcm` (DICOM) files. This 
 - **Image Optimization:** Applies VOI LUT (Value of Interest Look-Up Table) and Photometric Interpretations (e.g., MONOCHROME1 inversion) for optimal visual contrast.
 
 ### 🤖 AI-Powered Medical Analysis
-- **AI Reasoning:** Utilizes Google's Gemini AI (with the *Thinking* configuration) to emulate step-by-step diagnostic reasoning.
+- **Advanced AI Reasoning:** Utilizes Google's Gemini AI (with the *Thinking* configuration) to emulate step-by-step diagnostic reasoning.
 - **Grouped Context:** Analyzes multiple frames belonging to the same original DICOM file together for comparative analysis.
 - **Structured Reporting:** Outputs detailed Markdown (`.md`) reports including the AI's internal thought process, visual findings, clinical impressions, and actionable recommendations.
+- **CLI Parameter Control:** Complete control over inputs, outputs, models, and API keys through command-line flags.
 
 ---
 
@@ -64,90 +65,3 @@ An end-to-end Python pipeline for processing medical `.dcm` (DICOM) files. This 
    ```bash
    git clone https://github.com/yourusername/dicom-ai-pipeline.git
    cd dicom-ai-pipeline
-   ```
-
-2. **Create a virtual environment (Recommended):**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows use: venv\Scripts\activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install numpy pydicom Pillow google-genai
-   ```
-
----
-
-## 🚀 Usage Workflow
-
-### 1. Anonymize DICOM Files
-Before analyzing any patient data, it **must** be anonymized.
-1. Open `Dicomanon/DicomAnon.py`.
-2. Update the `input_dicom` and `output_dicom` paths at the bottom of the script.
-3. Run the script:
-   ```bash
-   python Dicomanon/DicomAnon.py
-   ```
-
-### 2. Verify Anonymization
-Ensure that the scrubbing was successful and no private tags remain.
-1. Open `Dicomanon/DicomVerifAnon.py`.
-2. Update `original_dicom` and `anonymized_dicom` to match the files from Step 1.
-3. Run the verification:
-   ```bash
-   python Dicomanon/DicomVerifAnon.py
-   ```
-   *You will see a side-by-side terminal table confirming the removal of PHI.*
-
-### 3. Convert & AI Analysis
-Once files are securely anonymized, place them into the `Pipeline_dcm_analyzer/dicom_input/` directory.
-
-1. Open `Pipeline_dicom_analyzer.py`.
-2. Set your Gemini API key and Model ID in the `__main__` block (see [Configuration](#-configuration) below for best practices).
-3. Run the pipeline:
-   ```bash
-   python Pipeline_dicom_analyzer.py
-   ```
-4. **Review Results:** Converted images will be saved in `png_output/`, and the structured AI reports will be saved in `reports/`.
-
----
-
-## ⚙️ Configuration
-
-> [!IMPORTANT]  
-> **Never commit your API keys to GitHub!** 
-
-To configure the AI agent, you must provide a valid Google Gemini API key and specify a model that supports the `ThinkingConfig` (e.g., `gemini-2.5-flash` or `gemini-2.5-pro`).
-
-**Best Practice (Environment Variables):**
-Instead of hardcoding your key in `Pipeline_dicom_analyzer.py`, set it in your terminal environment:
-
-```bash
-# On Linux/macOS
-export GEMINI_API_KEY="your_api_key_here"
-
-# On Windows (Command Prompt)
-set GEMINI_API_KEY="your_api_key_here"
-```
-
-Then, ensure your script reads from the environment:
-```python
-import os
-
-if __name__ == "__main__":
-    API_KEY = os.environ.get("GEMINI_API_KEY")
-    if not API_KEY:
-        raise ValueError("GEMINI_API_KEY environment variable not set!")
-        
-    MODEL_ID = "gemini-2.5-pro" # Or your preferred model
-    # ... rest of the script
-```
-
----
-
-## 📄 License
-
-This project is licensed under the GNU General Public License v3.0.
-
-Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights.
