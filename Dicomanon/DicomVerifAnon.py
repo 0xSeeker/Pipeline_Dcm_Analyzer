@@ -1,26 +1,31 @@
 import pydicom
 import os
+import argparse
 
-def verify_anonymization(original_path, anonymized_path):
+def verify_anonymization(original_path, anonymized_path, verbose=False):
     """
     Compares the original and anonymized DICOM files to verify PHI removal.
     """
     if not os.path.exists(original_path):
-        print(f"Error: Original file '{original_path}' not found.")
+        print(f"❌ Error: Original file '{original_path}' not found.")
         return
     if not os.path.exists(anonymized_path):
-        print(f"Error: Anonymized file '{anonymized_path}' not found.")
+        print(f"❌ Error: Anonymized file '{anonymized_path}' not found.")
         return
+
+    if verbose:
+        print(f"📂 Loading original: {original_path}")
+        print(f"📂 Loading anonymized: {anonymized_path}")
 
     # Load datasets
     try:
         ds_orig = pydicom.dcmread(original_path)
         ds_anon = pydicom.dcmread(anonymized_path)
     except Exception as e:
-        print(f"Error reading DICOM files: {e}")
+        print(f"❌ Error reading DICOM files: {e}")
         return
 
-    tags_to_check =[
+    tags_to_check = [
         'PatientName', 'PatientID', 'PatientBirthDate', 'PatientSex',
         'PatientAge', 'PatientWeight', 'PatientAddress', 'InstitutionName',
         'InstitutionAddress', 'ReferringPhysicianName', 'PerformingPhysicianName',
@@ -51,9 +56,11 @@ def verify_anonymization(original_path, anonymized_path):
         print(f"{tag_name:<25} | {orig_val_disp:<25} | {anon_val_disp:<25}")
 
         # Basic logic to flag if a tag was not cleared
-        if orig_val not in['<Not Present>', '<Empty>']:
-            if anon_val not in['<Not Present>', '<Empty>', 'ANONYMOUS']:
+        if orig_val not in ['<Not Present>', '<Empty>']:
+            if anon_val not in ['<Not Present>', '<Empty>', 'ANONYMOUS']:
                 all_passed = False
+                if verbose:
+                    print(f"  ⚠️ Warning: {tag_name} does not appear completely anonymized.")
 
     print("-" * 85)
 
@@ -71,6 +78,8 @@ def verify_anonymization(original_path, anonymized_path):
     
     if anon_has_private:
         all_passed = False
+        if verbose:
+            print("  ⚠️ Warning: Anonymized file still contains private tags.")
 
     print("=" * 85)
 
@@ -86,7 +95,11 @@ def verify_anonymization(original_path, anonymized_path):
 # Example Usage
 # ==========================================
 if __name__ == "__main__":
-    # Ensure these match the filenames you used in the first script
-    original_dicom = ""
-    anonymized_dicom = ""
-    verify_anonymization(original_dicom, anonymized_dicom)
+    parser = argparse.ArgumentParser(description="Verify DICOM anonymization by comparing files.")
+    parser.add_argument("-orig", "--original", required=True, help="Path to the original DICOM file")
+    parser.add_argument("-anon", "--anonymized", required=True, help="Path to the anonymized DICOM file")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging")
+
+    args = parser.parse_args()
+    
+    verify_anonymization(args.original, args.anonymized, args.verbose)
