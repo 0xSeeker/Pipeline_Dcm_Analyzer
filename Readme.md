@@ -65,3 +65,95 @@ An end-to-end Python pipeline for processing medical `.dcm` (DICOM) files. This 
    ```bash
    git clone https://github.com/yourusername/dicom-ai-pipeline.git
    cd dicom-ai-pipeline
+```
+
+2. **Create a virtual environment (Recommended):**
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows use: venv\Scripts\activate
+   ```
+
+3. **Install dependencies:**
+
+   ```bash
+   pip install numpy pydicom Pillow google-genai
+   ```
+
+---
+
+## 🚀 Usage Workflow
+
+All scripts now utilize command-line parameters for ease of use. You can append `-v` or `--verbose` to any command for detailed background logs.
+
+### 1. Anonymize DICOM Files
+
+Before analyzing any patient data, it **must** be anonymized.
+Run the anonymization script by passing the input and output paths:
+
+```bash
+python Dicomanon/DicomAnon.py -i /path/to/raw/patient.dcm -o /path/to/anonymized/patient.dcm -v
+```
+
+### 2. Verify Anonymization
+
+Ensure that the scrubbing was successful and no private tags remain.
+Compare the two files:
+
+```bash
+python Dicomanon/DicomVerifAnon.py -orig /path/to/raw/patient.dcm -anon /path/to/anonymized/patient.dcm
+```
+
+*You will see a side-by-side terminal table confirming the removal of PHI.*
+
+### 3. Convert & AI Analysis
+
+Once files are securely anonymized, place them into your input directory. The pipeline script accepts flags for directories, models, and API keys.
+
+```bash
+python Pipeline_dicom_analyzer.py \
+    -i Pipeline_dcm_analyzer/dicom_input \
+    -p Pipeline_dcm_analyzer/png_output \
+    -r Pipeline_dcm_analyzer/reports \
+    -m gemini-2.5-pro \
+    -v
+```
+
+**Available Pipeline Flags:**
+
+* `-i`, `--input`: Directory containing input DICOM files (default: `Pipeline_dcm_analyzer/dicom_input`)
+* `-p`, `--png-output`: Directory to save converted PNG files (default: `Pipeline_dcm_analyzer/png_output`)
+* `-r`, `--report-output`: Directory to save generated Markdown reports (default: `Pipeline_dcm_analyzer/reports`)
+* `-k`, `--api-key`: Gemini API Key (Defaults to `GEMINI_API_KEY` env variable)
+* `-m`, `--model`: Gemini Model ID (Defaults to `gemini-2.5-pro`)
+* `-v`, `--verbose`: Enable detailed processing logs.
+
+---
+
+## ⚙️ Configuration
+
+> [!IMPORTANT]  
+> **Never commit your API keys to GitHub!** 
+
+To configure the AI agent, you must provide a valid Google Gemini API key. Instead of using the `-k` command-line parameter (which can be logged in your terminal history), it is highly recommended to set it as an environment variable:
+
+```bash
+# On Linux/macOS
+export GEMINI_API_KEY="your_api_key_here"
+
+# On Windows (Command Prompt)
+set GEMINI_API_KEY="your_api_key_here"
+
+# On Windows (PowerShell)
+$env:GEMINI_API_KEY="your_api_key_here"
+```
+
+The script will automatically detect the `GEMINI_API_KEY` variable if the `-k` flag is not explicitly provided.
+
+---
+
+## 📄 License
+
+This project is licensed under the GNU General Public License v3.0.
+
+Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license. Copyright and license notices must be preserved. Contributors provide an express grant of patent rights.
